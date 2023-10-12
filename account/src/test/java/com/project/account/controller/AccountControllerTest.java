@@ -55,6 +55,7 @@ class AccountControllerTest {
         public ModelMapper modelMapper() {
             return new ModelMapper();
         }
+
         @Bean
         public MessageConverter jacksonConverter() {
             return new Jackson2JsonMessageConverter(objectMapper());
@@ -68,27 +69,26 @@ class AccountControllerTest {
 
     @SneakyThrows
     @Test
-    void findAll() {
-        when(accountService.findAll()).thenReturn(List.of(
+    void findAllShouldWork() {
+        List<Account> accounts = List.of(
                 new Account(1, "Name", 1234, 100.0),
                 new Account(2, "Name2", 1234, 200.0)
-        ));
+        );
+        when(accountService.findAll()).thenReturn(accounts);
 
         mockMvc.perform(get("/api/account").contentType(MediaType.APPLICATION_JSON))
-//                .accept(MediaType.TEXT_HTML)
-//                .param("name", "test123")
-//                .param("password", "pass"))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()").value(accounts.size()))
                 .andExpect(jsonPath("$[0].number").value(1))
                 .andExpect(jsonPath("$[1].username").value("Name2"));
     }
 
     @SneakyThrows
     @Test
-    void getOperations() {
-        long number = 3;
-        Account account = new Account(1, "Name", 1234, 100.0);
+    void getOperationsShouldWork() {
+        long number = 1;
+        Account account = new Account(number, "Name", 1234, 100.0);
         account.setBalanceOperations(List.of(new BalanceOperation(account, 50)));
 
         when(accountService.findByNumberWithOperation(number)).thenReturn(Optional.of(account));
@@ -102,7 +102,17 @@ class AccountControllerTest {
 
     @SneakyThrows
     @Test
-    public void createAccount() {
+    void getOperationsNotFound() {
+        long number = 3;
+
+        mockMvc.perform(get("/api/account/{number}", number).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @SneakyThrows
+    @Test
+    public void createAccountShouldWork() {
         AccountCreateDTO createDTO = new AccountCreateDTO("name", 1234,
                 new ProfileDTO("I'm", "test", LocalDate.now()));
 
@@ -113,8 +123,18 @@ class AccountControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").exists());
     }
-//
-//    @Test
-//    void createAccount() {
-//    }
+
+    @SneakyThrows
+    @Test
+    public void createAccountShouldNotWork() {
+        AccountCreateDTO createDTO = new AccountCreateDTO("name", 12341,
+                new ProfileDTO("I'm", "test", LocalDate.now()));
+
+        mockMvc.perform(post("/api/account/create")
+                .content(objectMapper.writeValueAsString(createDTO))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.username").doesNotExist());
+    }
 }

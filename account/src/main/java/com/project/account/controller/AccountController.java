@@ -40,7 +40,7 @@ public class AccountController {
         List<Account> accounts = accountService.findAll();
         List<AccountDTO> accountDTOS = accounts.stream().map(account -> modelMapper.map(account, AccountDTO.class))
                 .collect(Collectors.toList());
-        return new ResponseEntity(accountDTOS, HttpStatus.OK);
+        return ResponseEntity.ok(accountDTOS);
     }
 
     @GetMapping("/{number}")
@@ -51,7 +51,7 @@ public class AccountController {
         AccountWithOperationDTO accountDTO = modelMapper.map(account, AccountWithOperationDTO.class);
         messageProducer.produce(accountDTO);
 
-        return new ResponseEntity(accountDTO, HttpStatus.OK);
+        return ResponseEntity.ok(accountDTO);
     }
 
     @PostMapping("/create")
